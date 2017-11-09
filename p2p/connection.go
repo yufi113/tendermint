@@ -25,8 +25,6 @@ const (
 	minReadBufferSize  = 1024
 	minWriteBufferSize = 65536
 	updateStats        = 2 * time.Second
-	pingTimeout        = 40 * time.Second
-	pongTimeout        = 60 * time.Second
 
 	// some of these defaults are written in the user config
 	// flushThrottle, sendRate, recvRate
@@ -39,6 +37,8 @@ const (
 	defaultSendRate            = int64(512000) // 500KB/s
 	defaultRecvRate            = int64(512000) // 500KB/s
 	defaultSendTimeout         = 10 * time.Second
+	defaultPingTimeout         = 40 * time.Second
+	defaultPongTimeout         = 60 * time.Second
 )
 
 type receiveCbFunc func(chID byte, msgBytes []byte)
@@ -101,8 +101,9 @@ type MConnConfig struct {
 	RecvRate int64 `mapstructure:"recv_rate"`
 
 	maxMsgPacketPayloadSize int
-
-	flushThrottle time.Duration
+	flushThrottle           time.Duration
+	pingTimeout             time.Duration
+	pongTimeout             time.Duration
 }
 
 func (cfg *MConnConfig) maxMsgPacketTotalSize() int {
@@ -116,6 +117,8 @@ func DefaultMConnConfig() *MConnConfig {
 		RecvRate:                defaultRecvRate,
 		maxMsgPacketPayloadSize: defaultMaxMsgPacketPayloadSize,
 		flushThrottle:           defaultFlushThrottle,
+		pingTimeout:             defaultPingTimeout,
+		pongTimeout:             defaultPongTimeout,
 	}
 }
 
@@ -175,8 +178,8 @@ func (c *MConnection) OnStart() error {
 	}
 	c.quit = make(chan struct{})
 	c.flushTimer = cmn.NewThrottleTimer("flush", c.config.flushThrottle)
-	c.pingTimer = cmn.NewRepeatTimer("ping", pingTimeout)
-	c.pongTimer = cmn.NewThrottleTimer("pong", pongTimeout)
+	c.pingTimer = cmn.NewRepeatTimer("ping", c.config.pingTimeout)
+	c.pongTimer = cmn.NewThrottleTimer("pong", c.config.pongTimeout)
 	c.chStatsTimer = cmn.NewRepeatTimer("chStats", updateStats)
 	go c.sendRoutine()
 	go c.recvRoutine()
