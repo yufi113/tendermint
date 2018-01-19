@@ -86,6 +86,7 @@ test_persistence:
 
 test_p2p:
 	docker rm -f rsyslog || true
+	rm -rf test/logs || true
 	mkdir test/logs
 	cd test/
 	docker run -d -v "logs:/var/log/" -p 127.0.0.1:5514:514/udp --name rsyslog voxxit/rsyslog
