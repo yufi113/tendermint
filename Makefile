@@ -65,12 +65,9 @@ build_docker_test_image:
 	docker build -t tester -f ./test/docker/Dockerfile .
 
 ### coverage, app, persistence, and libs tests
-test_cover_fast:
+test_cover:
 	# run the go unit tests with coverage
-	bash test/test_cover.sh fast
-
-test_cover_slow:
-	bash test/test_cover.sh slow
+	bash test/test_cover.sh
 	
 test_apps:
 	# run the app tests using bash
@@ -97,8 +94,7 @@ test_p2p:
 
 test_integrations:
 	make build_test_docker_image
-	make test_cover_fast
-	make test_cover_slow
+	make test_cover
 	make test_apps
 	make test_persistence
 	make test_p2p
@@ -140,4 +136,4 @@ fmt:
 # To avoid unintended conflicts with file names, always add to .PHONY
 # unless there is a reason not to.
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
-.PHONY: check build build_race dist install check_tools get_tools update_tools get_vendor_deps draw_depsbuild_test_docker_image test_cover_fast test_cover_slow test_apps test_persistence test_p2p test test_race test_libs test_integrations test_release test100 vagrant_test fmt
+.PHONY: check build build_race dist install check_tools get_tools update_tools get_vendor_deps draw_depsbuild_test_docker_image test_cover test_apps test_persistence test_p2p test test_race test_libs test_integrations test_release test100 vagrant_test fmt
