@@ -8,7 +8,7 @@ BUILD_TAGS?=tendermint
 TMHOME = $${TMHOME:-$$HOME/.tendermint}
 BUILD_FLAGS = -ldflags "-X github.com/tendermint/tendermint/version.GitCommit=`git rev-parse --short HEAD`"
 
-all: check build test_all install
+all: check build test_integrations install
 
 check: check_tools get_vendor_deps
 
@@ -66,7 +66,7 @@ build_docker_test_image:
 
 ### coverage, app, persistence, and libs tests
 test_cover_fast:
-	# run the go unit tests with coverage (in docker)
+	# run the go unit tests with coverage
 	bash test/test_cover.sh fast
 
 test_cover_slow:
@@ -74,7 +74,7 @@ test_cover_slow:
 	
 test_apps:
 	# run the app tests using bash
-	# TODO requires `abci-cli` installed
+	# requires `abci-cli` and `tendermint` binaries installed
 	bash test/app/test.sh
 
 test_persistence:
@@ -82,6 +82,7 @@ test_persistence:
 	# requires `abci-cli` installed
 	docker run --name run_persistence -t tester bash test/persist/test_failure_indices.sh
 
+	# TODO undockerize
 	# bash test/persist/test_failure_indices.sh
 
 test_p2p:
@@ -94,7 +95,7 @@ test_p2p:
 	# requires 'tester' the image from above
 	bash test/p2p/test.sh tester
 
-test_all:
+test_integrations:
 	make build_test_docker_image
 	make test_cover_fast
 	make test_cover_slow
@@ -105,8 +106,7 @@ test_all:
 test_libs:
 	# checkout every github.com/tendermint dir and run its tests
 	# NOTE: on release-* or master branches only (set by Jenkins)
-	# TODO
-	docker run --name run_test -t tester bash test/test_libs.sh
+	docker run --name run_libs -t tester bash test/test_libs.sh
 
 test_release:
 	@go test -tags release $(PACKAGES)
@@ -118,14 +118,14 @@ vagrant_test:
 	vagrant up
 	vagrant ssh -c 'make install'
 	vagrant ssh -c 'make test_unit_race'
-	vagrant ssh -c 'make test_all'
+	vagrant ssh -c 'make test_integrations'
 
-### go tests without docker
-test_unit:
+### go tests
+test:
 	@echo "--> Running go test"
 	@go test $(PACKAGES)
 
-test_unit_race:
+test_race:
 	@echo "--> Running go test --race"
 	@go test -v -race $(PACKAGES)
 
@@ -140,4 +140,4 @@ fmt:
 # To avoid unintended conflicts with file names, always add to .PHONY
 # unless there is a reason not to.
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
-.PHONY: check build build_race dist install check_tools get_tools update_tools get_vendor_deps draw_depsbuild_test_docker_image test_cover_fast test_cover_slow test_apps test_persistence test_p2p test_unit test_unit_race test_libs test_all test_release test100 vagrant_test fmt
+.PHONY: check build build_race dist install check_tools get_tools update_tools get_vendor_deps draw_depsbuild_test_docker_image test_cover_fast test_cover_slow test_apps test_persistence test_p2p test test_race test_libs test_integrations test_release test100 vagrant_test fmt
