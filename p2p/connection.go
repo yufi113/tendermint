@@ -89,8 +89,7 @@ type MConnection struct {
 	pingTimer    *cmn.RepeatTimer   // send pings periodically
 	chStatsTimer *cmn.RepeatTimer   // update channel stats periodically
 
-	LocalAddress  *NetAddress
-	RemoteAddress *NetAddress
+	created time.Time // time of creation
 }
 
 // MConnConfig is a MConnection configuration.
@@ -140,9 +139,6 @@ func NewMConnectionWithConfig(conn net.Conn, chDescs []*ChannelDescriptor, onRec
 		onReceive:   onReceive,
 		onError:     onError,
 		config:      config,
-
-		LocalAddress:  NewNetAddress(conn.LocalAddr()),
-		RemoteAddress: NewNetAddress(conn.RemoteAddr()),
 	}
 
 	// Create channels
@@ -508,6 +504,7 @@ FOR_LOOP:
 }
 
 type ConnectionStatus struct {
+	Duration    time.Duration
 	SendMonitor flow.Status
 	RecvMonitor flow.Status
 	Channels    []ChannelStatus
@@ -523,6 +520,7 @@ type ChannelStatus struct {
 
 func (c *MConnection) Status() ConnectionStatus {
 	var status ConnectionStatus
+	status.Duration = time.Since(c.created)
 	status.SendMonitor = c.sendMonitor.Status()
 	status.RecvMonitor = c.recvMonitor.Status()
 	status.Channels = make([]ChannelStatus, len(c.channels))

@@ -8,7 +8,7 @@ BUILD_TAGS?=tendermint
 TMHOME = $${TMHOME:-$$HOME/.tendermint}
 BUILD_FLAGS = -ldflags "-X github.com/tendermint/tendermint/version.GitCommit=`git rev-parse --short HEAD`"
 
-all: check build test_integrations install
+all: check build install test_integrations
 
 check: check_tools get_vendor_deps
 

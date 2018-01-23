@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	wire "github.com/tendermint/go-wire"
+
 	cmn "github.com/tendermint/tmlibs/common"
 	dbm "github.com/tendermint/tmlibs/db"
 	"github.com/tendermint/tmlibs/log"
@@ -28,7 +29,8 @@ func newBlockchainReactor(logger log.Logger, maxBlockHeight int64) *BlockchainRe
 	// Make the blockchainReactor itself
 	fastSync := true
 	var nilApp proxy.AppConnConsensus
-	blockExec := sm.NewBlockExecutor(dbm.NewMemDB(), log.TestingLogger(), nilApp, types.MockMempool{}, types.MockEvidencePool{})
+	blockExec := sm.NewBlockExecutor(dbm.NewMemDB(), log.TestingLogger(), nilApp,
+		types.MockMempool{}, types.MockEvidencePool{})
 
 	bcReactor := NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	bcReactor.SetLogger(logger.With("module", "blockchain"))
@@ -55,7 +57,7 @@ func TestNoBlockMessageResponse(t *testing.T) {
 	defer bcr.Stop()
 
 	// Add some peers in
-	peer := newbcrTestPeer(cmn.RandStr(12))
+	peer := newbcrTestPeer(p2p.ID(cmn.RandStr(12)))
 	bcr.AddPeer(peer)
 
 	chID := byte(0x01)
@@ -113,16 +115,16 @@ func makeBlock(height int64, state sm.State) *types.Block {
 // The Test peer
 type bcrTestPeer struct {
 	cmn.Service
-	key string
-	ch  chan interface{}
+	id p2p.ID
+	ch chan interface{}
 }
 
 var _ p2p.Peer = (*bcrTestPeer)(nil)
 
-func newbcrTestPeer(key string) *bcrTestPeer {
+func newbcrTestPeer(id p2p.ID) *bcrTestPeer {
 	return &bcrTestPeer{
 		Service: cmn.NewBaseService(nil, "bcrTestPeer", nil),
-		key:     key,
+		id:      id,
 		ch:      make(chan interface{}, 2),
 	}
 }
@@ -130,7 +132,8 @@ func newbcrTestPeer(key string) *bcrTestPeer {
 func (tp *bcrTestPeer) lastValue() interface{} { return <-tp.ch }
 
 func (tp *bcrTestPeer) TrySend(chID byte, value interface{}) bool {
-	if _, ok := value.(struct{ BlockchainMessage }).BlockchainMessage.(*bcStatusResponseMessage); ok {
+	if _, ok := value.(struct{ BlockchainMessage }).
+		BlockchainMessage.(*bcStatusResponseMessage); ok {
 		// Discard status response messages since they skew our results
 		// We only want to deal with:
 		// + bcBlockResponseMessage
@@ -142,9 +145,9 @@ func (tp *bcrTestPeer) TrySend(chID byte, value interface{}) bool {
 }
 
 func (tp *bcrTestPeer) Send(chID byte, data interface{}) bool { return tp.TrySend(chID, data) }
-func (tp *bcrTestPeer) NodeInfo() *p2p.NodeInfo               { return nil }
+func (tp *bcrTestPeer) NodeInfo() p2p.NodeInfo                { return p2p.NodeInfo{} }
 func (tp *bcrTestPeer) Status() p2p.ConnectionStatus          { return p2p.ConnectionStatus{} }
-func (tp *bcrTestPeer) Key() string                           { return tp.key }
+func (tp *bcrTestPeer) ID() p2p.ID                            { return tp.id }
 func (tp *bcrTestPeer) IsOutbound() bool                      { return false }
 func (tp *bcrTestPeer) IsPersistent() bool                    { return true }
 func (tp *bcrTestPeer) Get(s string) interface{}              { return s }
